@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>This is Brandy</title>
+    <!-- Font Awesome 6 CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- 翻译数据 -->
+    <script src="translations.js"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* ==================== CSS 重置与基础样式 ==================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --midnight-blue: #0a0e27;
+            --dark-purple: #1a1a2e;
+            --light-purple: #2d2b55;
+            --gold: #d4af37;
+            --light-gold: #f0d060;
+            --text-light: #e0e0ff;
+            --text-muted: #a0a0c0;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: var(--midnight-blue);
+            color: var(--text-light);
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        /* ==================== Canvas 星空背景 ==================== */
+        #starfield {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        /* ==================== 页面淡入效果 ==================== */
+        .page-wrapper {
+            opacity: 0;
+            transition: opacity 1.5s ease-in-out;
+        }
+
+        .page-wrapper.loaded {
+            opacity: 1;
+        }
+
+        /* ==================== 首屏 Hero 区域 ==================== */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 2rem;
+            position: relative;
+        }
+
+        .hero__name {
+            font-family: 'Orbitron', monospace;
+            font-size: 4.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--light-gold), var(--gold), #fff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 1rem;
+            letter-spacing: 0.3rem;
+            text-shadow: 0 0 30px rgba(212, 175, 55, 0.3);
+        }
+
+        .hero__description {
+            font-size: 1.5rem;
+            color: var(--text-muted);
+            margin-bottom: 3rem;
+            font-weight: 300;
+            letter-spacing: 0.2rem;
+        }
+
+        .hero__scroll-hint {
+            position: absolute;
+            bottom: 3rem;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: bounce 2s infinite;
+            cursor: pointer;
+            color: var(--gold);
+            font-size: 2rem;
+            transition: color 0.3s;
+        }
+
+        .hero__scroll-hint:hover {
+            color: var(--light-gold);
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateX(-50%) translateY(0);
+            }
+            40% {
+                transform: translateX(-50%) translateY(-10px);
+            }
+            60% {
+                transform: translateX(-50%) translateY(-5px);
+            }
+        }
+
+        /* ==================== 通用段落标题 ==================== */
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+            color: var(--text-light);
+            position: relative;
+            display: inline-block;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--gold), transparent);
+        }
+
+        /* ==================== 时间轴区域 ==================== */
+        .timeline-section {
+            padding: 5rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .timeline {
+            position: relative;
+            padding: 2rem 0;
+        }
+
+        /* 中央发光细线 */
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 2px;
+            height: 100%;
+            background: linear-gradient(180deg, transparent, var(--gold), var(--gold), transparent);
+            box-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+        }
+
+        .timeline__item {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 4rem;
+            position: relative;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.8s ease, transform 0.8s ease;
+        }
+
+        .timeline__item.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .timeline__year {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 2px solid var(--gold);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Orbitron', monospace;
+            font-size: 1.2rem;
+            color: var(--gold);
+            z-index: 2;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
+        }
+
+        .timeline__year:hover {
+            transform: translateX(-50%) scale(1.2);
+            box-shadow: 0 0 30px rgba(212, 175, 55, 0.5);
+        }
+
+        .timeline__year .tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: var(--light-gold);
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            margin-bottom: 10px;
+        }
+
+        .timeline__year:hover .tooltip {
+            opacity: 1;
+        }
+
+        .timeline__content {
+            width: 45%;
+            padding: 1.5rem;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            box-shadow: var(--card-shadow);
+        }
+
+        .timeline__item:nth-child(odd) .timeline__content {
+            margin-right: auto;
+            margin-left: 0;
+        }
+
+        .timeline__item:nth-child(even) .timeline__content {
+            margin-left: auto;
+            margin-right: 0;
+        }
+
+        .timeline__content h3 {
+            color: var(--gold);
+            margin-bottom: 0.5rem;
+            font-size: 1.3rem;
+        }
+
+        .timeline__content p {
+            color: var(--text-muted);
+            font-size: 1rem;
+        }
+
+        /* ==================== 能力星环区域 ==================== */
+        .skills-section {
+            padding: 5rem 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .skills-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .skill-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+        }
+
+        .skill-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--gold), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .skill-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 40px rgba(212, 175, 55, 0.2);
+            border-color: rgba(212, 175, 55, 0.3);
+        }
+
+        .skill-card:hover::before {
+            opacity: 1;
+        }
+
+        .skill-card.active {
+            border-color: rgba(212, 175, 55, 0.5);
+            box-shadow: 0 15px 40px rgba(212, 175, 55, 0.3);
+        }
+
+        .skill-card__icon {
+            font-size: 3rem;
+            color: var(--gold);
+            margin-bottom: 1rem;
+            display: inline-block;
+            transition: transform 0.3s;
+        }
+
+        .skill-card:hover .skill-card__icon {
+            transform: scale(1.1);
+        }
+
+        .skill-card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-light);
+        }
+
+        .skill-card p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        /* ==================== 卡片展开内容区域 ==================== */
+        .skill-detail {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease, opacity 0.5s ease;
+            opacity: 0;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            margin-top: 1rem;
+        }
+
+        .skill-detail.expanded {
+            max-height: 3000px;
+            opacity: 1;
+            padding: 2rem;
+        }
+
+        .skill-detail__content {
+            color: var(--text-light);
+        }
+
+        /* 占星师卡片展开区样式 */
+        .astrology-chart {
+            width: 200px;
+            height: 200px;
+            margin: 2rem auto;
+            position: relative;
+            border: 2px solid var(--gold);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .astrology-chart::before,
+        .astrology-chart::after {
+            content: '';
+            position: absolute;
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 50%;
+        }
+
+        .astrology-chart::before {
+            width: 80%;
+            height: 80%;
+        }
+
+        .astrology-chart::after {
+            width: 60%;
+            height: 60%;
+        }
+
+        .astrology-chart .symbol {
+            position: absolute;
+            font-size: 1.5rem;
+            color: var(--gold);
+        }
+
+        .astrology-chart .symbol:nth-child(1) { top: 10px; left: 50%; transform: translateX(-50%); }
+        .astrology-chart .symbol:nth-child(2) { top: 50%; right: 10px; transform: translateY(-50%); }
+        .astrology-chart .symbol:nth-child(3) { bottom: 10px; left: 50%; transform: translateX(-50%); }
+        .astrology-chart .symbol:nth-child(4) { top: 50%; left: 10px; transform: translateY(-50%); }
+
+        .btn-cosmic {
+            display: inline-block;
+            padding: 0.8rem 2rem;
+            background: linear-gradient(135deg, var(--gold), var(--light-gold));
+            color: var(--midnight-blue);
+            border: none;
+            border-radius: 30px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            margin-top: 1rem;
+        }
+
+        .btn-cosmic:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(212, 175, 55, 0.4);
+        }
+
+        /* 医药咨询项目卡片样式 */
+        .project-list {
+            display: grid;
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .project-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 1.5rem;
+            border-left: 3px solid var(--gold);
+        }
+
+        .project-item h4 {
+            color: var(--gold);
+            margin-bottom: 0.5rem;
+        }
+
+        .project-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .project-tag {
+            background: rgba(212, 175, 55, 0.2);
+            color: var(--light-gold);
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+        }
+
+        /* 播客卡片样式 */
+        .podcast-episodes {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .podcast-cover {
+            background: linear-gradient(135deg, var(--light-purple), var(--dark-purple));
+            border-radius: 10px;
+            padding: 1.2rem;
+            text-align: center;
+            font-size: 2rem;
+            min-height: 110px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid var(--glass-border);
+            overflow: hidden;
+        }
+
+        .podcast-cover span {
+            font-size: 0.85rem;
+            margin-top: 0.8rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+            word-break: break-word;
+        }
+
+        /* AI Builder 产品样式 */
+        .ai-products {
+            display: grid;
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .ai-product {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 1.5rem;
+            border: 1px solid var(--glass-border);
+            transition: all 0.3s;
+            margin-bottom: 1rem;
+        }
+
+        .ai-product h4 {
+            color: var(--gold);
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .ai-product p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .ai-product:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(212, 175, 55, 0.3);
+        }
+
+        .ai-product h4 {
+            color: var(--gold);
+            margin-bottom: 0.3rem;
+        }
+
+        .btn-demo {
+            padding: 0.5rem 1.5rem;
+            background: transparent;
+            color: var(--gold);
+            border: 1px solid var(--gold);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .btn-demo:hover {
+            background: rgba(212, 175, 55, 0.2);
+        }
+
+        /* ==================== 页面底部 ==================== */
+        .footer {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            border-top: 1px solid var(--glass-border);
+            margin-top: 5rem;
+        }
+
+        /* ==================== 响应式设计 ==================== */
+        @media (max-width: 1024px) {
+            .skills-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hero__name {
+                font-size: 3rem;
+            }
+
+            .hero__description {
+                font-size: 1.2rem;
+            }
+
+            .timeline::before {
+                left: 30px;
+            }
+
+            .timeline__year {
+                left: 30px;
+                width: 60px;
+                height: 60px;
+                font-size: 1rem;
+            }
+
+            .timeline__content {
+                width: calc(100% - 100px);
+                margin-left: auto !important;
+                margin-right: 0 !important;
+            }
+
+            .skills-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .section-title {
+                font-size: 2rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero__name {
+                font-size: 2.5rem;
+            }
+
+            .hero__description {
+                font-size: 1rem;
+            }
+
+            .timeline__content {
+                width: calc(100% - 80px);
+                padding: 1rem;
+            }
+
+            .skill-card {
+                padding: 1.5rem;
+            }
+        }
+        /* ==================== 语言切换按钮 ==================== */
+        .lang-switcher {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            gap: 5px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 25px;
+            padding: 5px;
+        }
+
+        .lang-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+
+        .lang-btn:hover {
+            color: var(--text-light);
+        }
+
+        .lang-btn.active {
+            background: linear-gradient(135deg, var(--gold), var(--light-gold));
+            color: var(--midnight-blue);
+            font-weight: 600;
+        }
+
+        /* 英文状态下的字体调整 */
+        body.lang-en {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body.lang-en .hero__name {
+            font-family: 'Orbitron', monospace;
+        }
+
+    </style>
+</head>
+<body>
+    <!-- 语言切换按钮 -->
+    <div class="lang-switcher">
+        <button class="lang-btn active" data-lang="zh">中文</button>
+        <button class="lang-btn" data-lang="en">ENG</button>
+    </div>
+
+    <!-- Canvas 星空背景 -->
+    <canvas id="starfield"></canvas>
+
+    <!-- 页面内容包装器 -->
+    <div class="page-wrapper">
+        <!-- 首屏 Hero 区域 -->
+        <section class="hero" id="hero">
+            <h1 class="hero__name">This is Brandy</h1>
+            <p class="hero__description" data-i18n="hero.desc">挖掘Aha moment的分析师 | 真诚温暖的表达者 | 主动进取的ENTJ</p>
+            <a href="#timeline" class="hero__scroll-hint">
+                <i class="fas fa-chevron-down"></i>
+            </a>
+        </section>
+
+        <!-- 时间轴区域 -->
+        <section class="timeline-section" id="timeline">
+            <h2 class="section-title" data-i18n="timeline.title">✨ 星轨 · 经历</h2>
+            <div class="timeline">
+                <!-- 时间轴项目 1 -->
+                <div class="timeline__item">
+                    <div class="timeline__year">
+                        2022.03
+                        <span class="tooltip" data-i18n="timeline.t1.tooltip">仰望星空的人</span>
+                    </div>
+                    <div class="timeline__content">
+                        <h3 data-i18n="timeline.t1.title">开始占星实践</h3>
+                        <p data-i18n="timeline.t1.desc">星图指南，助己助他，看清选择与路径</p>
+                    </div>
+                </div>
+
+                <!-- 时间轴项目 2 -->
+                <div class="timeline__item">
+                    <div class="timeline__year">
+                        2022.09
+                        <span class="tooltip" data-i18n="timeline.t2.tooltip">从星辰到民生</span>
+                    </div>
+                    <div class="timeline__content">
+                        <h3 data-i18n="timeline.t2.title">进入医药行业</h3>
+                        <p data-i18n="timeline.t2.desc">从医药咨询开始，到中国创新药投融资出海，深耕前沿动态与市场洞察</p>
+                    </div>
+                </div>
+
+                <!-- 时间轴项目 3 -->
+                <div class="timeline__item">
+                    <div class="timeline__year">
+                        2024.12
+                        <span class="tooltip" data-i18n="timeline.t3.tooltip">声音是另一种星光</span>
+                    </div>
+                    <div class="timeline__content">
+                        <h3 data-i18n="timeline.t3.title">上线播客《二十而已BeyondTwenty》</h3>
+                        <p data-i18n="timeline.t3.desc">二十而已，无限可能，用声音传递温度和经验</p>
+                    </div>
+                </div>
+
+                <!-- 时间轴项目 4 -->
+                <div class="timeline__item">
+                    <div class="timeline__year">
+                        2025.10
+                        <span class="tooltip" data-i18n="timeline.t4.tooltip">AI是新魔法</span>
+                    </div>
+                    <div class="timeline__content">
+                        <h3 data-i18n="timeline.t4.title">成为 AI Builder</h3>
+                        <p data-i18n="timeline.t4.desc">将需求洞察和Aha moment借助AI，转化为现实</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 能力星环区域 -->
+        <section class="skills-section" id="skills">
+            <h2 class="section-title" data-i18n="skills.title">🌙 星云·初现</h2>
+            <div class="skills-grid">
+                <!-- 卡片 1: 占星师 -->
+                <div class="skill-card" data-skill="astrology">
+                    <div class="skill-card__icon">
+                        <i class="fas fa-moon"></i>
+                    </div>
+                    <h3 data-i18n="skills.astrology.title">占星师</h3>
+                    <p data-i18n="skills.astrology.desc">3年+占星实践</p>
+                    <div class="skill-detail" id="detail-astrology">
+                        <div class="skill-detail__content">
+                            <p style="text-align: center; font-size: 1.2rem; margin-bottom: 1rem;" data-i18n="skills.astrology.detail">✨ 星图指南 · 专属网页筹备中 ✨</p>
+                            <div class="astrology-chart">
+                                <span class="symbol">☉</span>
+                                <span class="symbol">☽</span>
+                                <span class="symbol">☊</span>
+                                <span class="symbol">♀</span>
+                            </div>
+                            <div style="text-align: center; margin-top: 2rem;">
+                                <a href="https://your-astrology-site.com" target="_blank" class="btn-cosmic" data-i18n="skills.astrology.btn">🔮 前往占星工坊（即将开放）</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 卡片 2: 医药咨询顾问 -->
+                <div class="skill-card" data-skill="consulting">
+                    <div class="skill-card__icon">
+                        <i class="fas fa-staff-snake"></i>
+                    </div>
+                    <h3 data-i18n="skills.consulting.title">医药咨询顾问</h3>
+                    <p data-i18n="skills.consulting.desc">3年+创新药行业深度洞察</p>
+                    <div class="skill-detail" id="detail-consulting">
+                        <div class="skill-detail__content">
+                            <p style="margin-bottom: 1rem;" data-i18n="skills.consulting.detail">过往项目经验：</p>
+                            <div class="project-list">
+                                <div class="project-item">
+                                    <h4 data-i18n="skills.consulting.p1.title">某肿瘤药物上市策略支持</h4>
+                                    <p data-i18n="skills.consulting.p1.desc">为创新肿瘤药物提供市场开发策略、产品线区隔定位</p>
+                                    <div class="project-tags">
+                                    </div>
+                                </div>
+                                <div class="project-item">
+                                    <h4 data-i18n="skills.consulting.p2.title">GLP-1慢病/减肥市场上市策略探索</h4>
+                                    <p data-i18n="skills.consulting.p2.desc">通过深度挖掘医生减重观念与处方障碍，制定科室优先布局与观念攻坚战略</p>
+                                    <div class="project-tags">
+                                    </div>
+                                </div>
+                                <div class="project-item">
+                                    <h4 data-i18n="skills.consulting.p3.title">特药院外流通路径研究</h4>
+                                    <p data-i18n="skills.consulting.p3.desc">解码不同零售渠道的差异化定位与实操瓶颈，识别院外市场增长机会</p>
+                                    <div class="project-tags">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 卡片 3: 播客 -->
+                <div class="skill-card" data-skill="podcast">
+                    <div class="skill-card__icon">
+                        <i class="fas fa-satellite-dish"></i>
+                    </div>
+                    <h3 data-i18n="skills.podcast.title">个人成长播客</h3>
+                    <p data-i18n="skills.podcast.desc">和20+年轻人共同成长</p>
+                    <div class="skill-detail" id="detail-podcast">
+                        <div class="skill-detail__content">
+                            <p style="margin-bottom: 1rem;" data-i18n="skills.podcast.detail">近期播客节目：</p>
+                            <div class="podcast-episodes">
+                                <div class="podcast-cover">
+                                    🎙️
+                                    <span data-i18n="skills.podcast.ep1">EP8: 读万卷书|祝我们早日破除沟通困境</span>
+                                </div>
+                                <div class="podcast-cover">
+                                    🌟
+                                    <span data-i18n="skills.podcast.ep2">EP38: 成长就是对这个世界上的人和事祛魅的过程</span>
+                                </div>
+                                <div class="podcast-cover">
+                                    🚀
+                                    <span data-i18n="skills.podcast.ep3">EP60: 别让脑子里的限制性念头，挡住你脚下的路</span>
+                                </div>
+                            </div>
+                            <div style="text-align: center; margin-top: 2rem;">
+                                <a href="https://beyondtwenty.podcast.xyz" target="_blank" class="btn-cosmic" data-i18n="skills.podcast.btn">🎧 前往小宇宙收听</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 卡片 4: AI Builder -->
+                <div class="skill-card" data-skill="ai">
+                    <div class="skill-card__icon">
+                        <i class="fas fa-microchip"></i>
+                    </div>
+                    <h3 data-i18n="skills.ai.title">AI解决方案</h3>
+                    <p data-i18n="skills.ai.desc">以产品经理的视角，灵活运用AI解决实际问题</p>
+                    <div class="skill-detail" id="detail-ai">
+                        <div class="skill-detail__content">
+                            <p style="margin-bottom: 1.5rem; text-align: center; color: var(--gold);" data-i18n="skills.ai.detail">AI产品展示：</p>
+                            <div class="ai-products">
+                                <div class="ai-product">
+                                    <h4 data-i18n="skills.ai.p1.title">🏥 医药行业集成助理</h4>
+                                    <p data-i18n="skills.ai.p1.desc">案头研究疾病、药物；搭建报告故事线；金字塔原理呈现洞察；投融资动态梳理；商业尽调赛道、公司</p>
+                                </div>
+                                <div class="ai-product">
+                                    <h4 data-i18n="skills.ai.p2.title">🔮 陪伴式占星师</h4>
+                                    <p data-i18n="skills.ai.p2.desc">AI驱动的星盘分析，支持语音聊天；辅助决策，提供可落地行动建议</p>
+                                </div>
+                                <div class="ai-product">
+                                    <h4 data-i18n="skills.ai.p3.title">🎙️ 播客搭子</h4>
+                                    <p data-i18n="skills.ai.p3.desc">帮助播客创作者解决从内容策划、节目上线、数据复盘的全流程问题</p>
+                                </div>
+                            </div>
+                            <div style="text-align: center; margin-top: 2rem;">
+                                <a href="https://your-all-ai-tools-link.com" target="_blank" class="btn-cosmic" data-i18n="skills.ai.btn">🚀 体验所有AI工具</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 页面底部 -->
+        <footer class="footer">
+            <p data-i18n="footer">© 2026 星尘旅程 · 持续演化中</p>
+        </footer>
+    </div>
+
+    <script>
+        // ==================== Canvas 星空背景 ====================
+        const canvas = document.getElementById('starfield');
+        const ctx = canvas.getContext('2d');
+        let stars = [];
+        let comet = null;
+
+        // 设置Canvas尺寸
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        // 初始化星星
+        function initStars() {
+            stars = [];
+            const starCount = Math.floor((canvas.width * canvas.height) / 3000);
+            
+            for (let i = 0; i < starCount; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    radius: Math.random() * 1.5 + 0.5,
+                    opacity: Math.random() * 0.8 + 0.2,
+                    speed: Math.random() * 0.05 + 0.02,
+                    pulse: Math.random() * Math.PI * 2
+                });
+            }
+        }
+
+        // 创建彗星
+        function createComet() {
+            if (comet) return;
+            
+            comet = {
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height * 0.5,
+                length: Math.random() * 50 + 30,
+                speedX: Math.random() * 3 + 2,
+                speedY: Math.random() * 2 + 1,
+                opacity: 1,
+                life: 100
+            };
+        }
+
+        // 绘制星星
+        function drawStars() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 绘制深色背景
+            ctx.fillStyle = '#0a0e27';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // 绘制星星
+            stars.forEach(star => {
+                star.pulse += star.speed;
+                const currentOpacity = star.opacity * (0.7 + 0.3 * Math.sin(star.pulse));
+                
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${currentOpacity})`;
+                ctx.fill();
+                
+                // 添加光晕效果
+                if (star.radius > 1) {
+                    ctx.beginPath();
+                    ctx.arc(star.x, star.y, star.radius * 3, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(212, 175, 55, ${currentOpacity * 0.1})`;
+                    ctx.fill();
+                }
+            });
+            
+            // 绘制彗星
+            if (comet) {
+                ctx.beginPath();
+                ctx.moveTo(comet.x, comet.y);
+                ctx.lineTo(comet.x - comet.length, comet.y - comet.length * 0.5);
+                ctx.strokeStyle = `rgba(212, 175, 55, ${comet.opacity})`;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // 绘制彗星头部
+                ctx.beginPath();
+                ctx.arc(comet.x, comet.y, 3, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${comet.opacity})`;
+                ctx.fill();
+                
+                // 更新彗星位置
+                comet.x += comet.speedX;
+                comet.y += comet.speedY;
+                comet.life--;
+                comet.opacity = comet.life / 100;
+                
+                // 移除超出画布或生命结束的彗星
+                if (comet.x > canvas.width + 100 || comet.y > canvas.height + 100 || comet.life <= 0) {
+                    comet = null;
+                }
+            }
+            
+            // 随机生成新彗星
+            if (Math.random() < 0.002) {
+                createComet();
+            }
+        }
+
+        // 动画循环
+        function animateStars() {
+            drawStars();
+            requestAnimationFrame(animateStars);
+        }
+
+        // ==================== 鼠标移动彗星尾巴效果 ====================
+        let mouseX = 0;
+        let mouseY = 0;
+        let trail = [];
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            
+            // 添加鼠标轨迹点
+            trail.push({x: mouseX, y: mouseY, life: 20});
+            
+            // 限制轨迹长度
+            if (trail.length > 10) {
+                trail.shift();
+            }
+        });
+
+        // 绘制鼠标轨迹
+        function drawMouseTrail() {
+            if (trail.length < 2) return;
+            
+            ctx.beginPath();
+            ctx.moveTo(trail[0].x, trail[0].y);
+            
+            for (let i = 1; i < trail.length; i++) {
+                ctx.lineTo(trail[i].x, trail[i].y);
+                
+                // 更新轨迹点生命值
+                trail[i].life--;
+            }
+            
+            // 移除死亡轨迹点
+            trail = trail.filter(point => point.life > 0);
+            
+            ctx.strokeStyle = 'rgba(212, 175, 55, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        // 修改动画循环以包含鼠标轨迹
+        const originalAnimateStars = animateStars;
+        animateStars = function() {
+            drawStars();
+            drawMouseTrail();
+            requestAnimationFrame(animateStars);
+        };
+
+        // ==================== 页面淡入效果 ====================
+        window.addEventListener('load', () => {
+            document.querySelector('.page-wrapper').classList.add('loaded');
+        });
+
+        // ==================== 时间轴滚动淡入效果 ====================
+        function checkTimelineItems() {
+            const timelineItems = document.querySelectorAll('.timeline__item');
+            
+            timelineItems.forEach(item => {
+                const itemTop = item.getBoundingClientRect().top;
+                const windowHeight = window.innerHeight;
+                
+                if (itemTop < windowHeight * 0.85) {
+                    item.classList.add('visible');
+                }
+            });
+        }
+
+        window.addEventListener('scroll', checkTimelineItems);
+        window.addEventListener('load', checkTimelineItems);
+
+        // ==================== 卡片展开/折叠交互 ====================
+        let activeSkill = null;
+
+        document.querySelectorAll('.skill-card').forEach(card => {
+            card.addEventListener('click', (e) => {
+                // 防止点击卡片内的按钮时触发卡片点击
+                if (e.target.classList.contains('btn-demo') || 
+                    e.target.classList.contains('btn-cosmic') ||
+                    e.target.closest('a')) {
+                    return;
+                }
+                
+                const skill = card.getAttribute('data-skill');
+                const detail = document.getElementById(`detail-${skill}`);
+                
+                // 如果点击的是当前激活的卡片
+                if (activeSkill === skill) {
+                    // 关闭当前卡片
+                    detail.classList.remove('expanded');
+                    card.classList.remove('active');
+                    activeSkill = null;
+                } else {
+                    // 关闭之前激活的卡片
+                    if (activeSkill) {
+                        const prevDetail = document.getElementById(`detail-${activeSkill}`);
+                        const prevCard = document.querySelector(`[data-skill="${activeSkill}"]`);
+                        if (prevDetail) prevDetail.classList.remove('expanded');
+                        if (prevCard) prevCard.classList.remove('active');
+                    }
+                    
+                    // 打开新卡片
+                    detail.classList.add('expanded');
+                    card.classList.add('active');
+                    activeSkill = skill;
+                }
+            });
+        });
+
+        // ==================== 平滑滚动 ====================
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                const targetId = this.getAttribute('href');
+                if (targetId === '#') return;
+                
+                const targetElement = document.querySelector(targetId);
+                if (targetElement) {
+                    window.scrollTo({
+                        top: targetElement.offsetTop - 80,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+
+        // ==================== 初始化 ====================
+        resizeCanvas();
+        initStars();
+        animateStars();
+
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            initStars();
+        });
+
+        // ==================== 添加视差效果 ====================
+        window.addEventListener('scroll', () => {
+            const scrolled = window.pageYOffset;
+            const hero = document.querySelector('.hero');
+            
+            if (hero) {
+                hero.style.transform = `translateY(${scrolled * 0.5}px)`;
+                hero.style.opacity = 1 - scrolled / 600;
+            }
+
+        });
+
+        // ==================== 中英文切换功能 ====================
+        function switchLanguage(lang) {
+            // 更新所有带 data-i18n 属性的元素
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[lang] && translations[lang][key]) {
+                    el.textContent = translations[lang][key];
+                }
+            });
+
+            // 更新 HTML lang 属性
+            document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+
+            // 更新 body 类名
+            document.body.className = lang === 'en' ? 'lang-en' : '';
+
+            // 更新按钮状态
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                if (btn.getAttribute('data-lang') === lang) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            // 保存语言选择到 localStorage
+            localStorage.setItem('preferred-language', lang);
+        }
+
+        // 语言切换按钮事件
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const lang = btn.getAttribute('data-lang');
+                switchLanguage(lang);
+            });
+        });
+
+        // 页面加载时恢复语言选择
+        const savedLang = localStorage.getItem('preferred-language') || 'zh';
+        switchLanguage(savedLang);
+    </script>
+</body>
+</html>
